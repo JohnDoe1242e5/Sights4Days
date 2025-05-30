@@ -1,0 +1,366 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer or Players:GetPlayers()[1]
+if not player then error("No player found") end
+
+local replicatedPlayersFolder = ReplicatedStorage:FindFirstChild("Players")
+if not replicatedPlayersFolder then error("ReplicatedStorage.Players folder NOT found!") end
+
+local replicatedPlayerFolder = replicatedPlayersFolder:FindFirstChild(player.Name)
+if not replicatedPlayerFolder then error("Player folder for "..player.Name.." NOT found in ReplicatedStorage.Players!") end
+
+local playerInventory = replicatedPlayerFolder:FindFirstChild("Inventory")
+if not playerInventory then error("Inventory NOT found in ReplicatedStorage.Players."..player.Name) end
+
+local dictionary = ReplicatedStorage:WaitForChild("ItemsList")
+local sighttable = { "ACOG", "HoloSight", "LPVO", "OKP7", "ONV9", "PSO1", "Reapir", "Scope6X", "SniperScope", "T1Sight" }
+
+local restrictedGuns = {
+	M4 = true,
+	TFZ98S = true,
+	R700 = true,
+	FAL = true,
+	ADAR15 = true
+}
+
+local blockedSights = {
+	ONV9 = true,
+	OKP7 = true
+}
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SightSelector"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 400, 0, 720)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -350)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TopBar.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Text = "SugmaHacks - PD (REMOVE YOUR OPTICS)"
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.Parent = TopBar
+
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = Frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local delta = input.Position - dragStart
+		Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+local SightFrame = Instance.new("Frame")
+SightFrame.Size = UDim2.new(0.45, 0, 0.7, 0)
+SightFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+SightFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SightFrame.Parent = Frame
+
+local SightTitle = Instance.new("TextLabel")
+SightTitle.Text = "Sights"
+SightTitle.Size = UDim2.new(1, 0, 0, 30)
+SightTitle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SightTitle.TextColor3 = Color3.new(1,1,1)
+SightTitle.Font = Enum.Font.GothamBold
+SightTitle.TextSize = 18
+SightTitle.Parent = SightFrame
+
+local SightList = Instance.new("ScrollingFrame")
+SightList.Size = UDim2.new(1, 0, 1, -30)
+SightList.Position = UDim2.new(0, 0, 0, 30)
+SightList.BackgroundTransparency = 1
+SightList.BorderSizePixel = 0
+SightList.CanvasSize = UDim2.new(0, 0, 0, 0)
+SightList.ScrollBarThickness = 6
+SightList.Parent = SightFrame
+
+local SightListLayout = Instance.new("UIListLayout")
+SightListLayout.Padding = UDim.new(0, 5)
+SightListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SightListLayout.Parent = SightList
+
+local GunFrame = Instance.new("Frame")
+GunFrame.Size = UDim2.new(0.45, 0, 0.7, 0)
+GunFrame.Position = UDim2.new(0.5, 0, 0.1, 0)
+GunFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+GunFrame.Parent = Frame
+
+local GunTitle = Instance.new("TextLabel")
+GunTitle.Text = "Guns"
+GunTitle.Size = UDim2.new(1, 0, 0, 30)
+GunTitle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+GunTitle.TextColor3 = Color3.new(1,1,1)
+GunTitle.Font = Enum.Font.GothamBold
+GunTitle.TextSize = 18
+GunTitle.Parent = GunFrame
+
+local GunList = Instance.new("ScrollingFrame")
+GunList.Size = UDim2.new(1, 0, 1, -30)
+GunList.Position = UDim2.new(0, 0, 0, 30)
+GunList.BackgroundTransparency = 1
+GunList.BorderSizePixel = 0
+GunList.CanvasSize = UDim2.new(0, 0, 0, 0)
+GunList.ScrollBarThickness = 6
+GunList.Parent = GunFrame
+
+local GunListLayout = Instance.new("UIListLayout")
+GunListLayout.Padding = UDim.new(0, 5)
+GunListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+GunListLayout.Parent = GunList
+
+local SelectedSightLabel = Instance.new("TextLabel")
+SelectedSightLabel.Size = UDim2.new(1, -20, 0, 25)
+SelectedSightLabel.Position = UDim2.new(0.05, 0, 0.80, 0)
+SelectedSightLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SelectedSightLabel.TextColor3 = Color3.new(1,1,1)
+SelectedSightLabel.Font = Enum.Font.Gotham
+SelectedSightLabel.TextSize = 16
+SelectedSightLabel.Text = "Selected Sight: None"
+SelectedSightLabel.TextXAlignment = Enum.TextXAlignment.Left
+SelectedSightLabel.Parent = Frame
+
+local SelectedGunLabel = Instance.new("TextLabel")
+SelectedGunLabel.Size = UDim2.new(1, -20, 0, 25)
+SelectedGunLabel.Position = UDim2.new(0.05, 0, 0.85, 0)
+SelectedGunLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SelectedGunLabel.TextColor3 = Color3.new(1,1,1)
+SelectedGunLabel.Font = Enum.Font.Gotham
+SelectedGunLabel.TextSize = 16
+SelectedGunLabel.Text = "Selected Gun: None"
+SelectedGunLabel.TextXAlignment = Enum.TextXAlignment.Left
+SelectedGunLabel.Parent = Frame
+
+local ErrorLabel = Instance.new("TextLabel")
+ErrorLabel.Size = UDim2.new(0.9, 0, 0, 25)
+ErrorLabel.Position = UDim2.new(0.05, 0, 0.90, 0)
+ErrorLabel.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ErrorLabel.TextColor3 = Color3.new(1,1,1)
+ErrorLabel.Font = Enum.Font.GothamBold
+ErrorLabel.TextSize = 16
+ErrorLabel.Text = ""
+ErrorLabel.Visible = false
+ErrorLabel.Parent = Frame
+
+local RemoveButton = Instance.new("TextButton")
+RemoveButton.Size = UDim2.new(0.9, 0, 0, 40)
+RemoveButton.Position = UDim2.new(0.05, 0, 0.9, 0)
+RemoveButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+RemoveButton.TextColor3 = Color3.new(1,1,1)
+RemoveButton.Font = Enum.Font.GothamBold
+RemoveButton.TextSize = 18
+RemoveButton.Text = "Remove Sight"
+RemoveButton.Parent = Frame
+
+local ConfirmButton = Instance.new("TextButton")
+ConfirmButton.Size = UDim2.new(0.9, 0, 0, 40)
+ConfirmButton.Position = UDim2.new(0.05, 0, 0.944, 0)
+ConfirmButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+ConfirmButton.TextColor3 = Color3.new(1,1,1)
+ConfirmButton.Font = Enum.Font.GothamBold
+ConfirmButton.TextSize = 18
+ConfirmButton.Text = "Confirm"
+ConfirmButton.Parent = Frame
+
+local selectedSight = nil
+local selectedGun = nil
+
+local function clearHighlights(list)
+	for _, child in ipairs(list:GetChildren()) do
+		if child:IsA("TextButton") then
+			child.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		end
+	end
+end
+
+for _, sightName in ipairs(sighttable) do
+	local sightToCheck = dictionary:FindFirstChild(sightName)
+	if sightToCheck then
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		btn.TextColor3 = Color3.new(1,1,1)
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 16
+		btn.Text = sightName
+		btn.Parent = SightList
+
+		btn.MouseButton1Click:Connect(function()
+			clearHighlights(SightList)
+			btn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+			selectedSight = sightName
+			SelectedSightLabel.Text = "Selected Sight: " .. sightName
+			ErrorLabel.Visible = false
+		end)
+	end
+end
+
+SightList.CanvasSize = UDim2.new(0, 0, 0, #sighttable * 35)
+
+local function refreshGuns()
+	for _, child in ipairs(GunList:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	for _, weapon in ipairs(playerInventory:GetChildren()) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		btn.TextColor3 = Color3.new(1,1,1)
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 16
+		btn.Text = weapon.Name
+		btn.Parent = GunList
+
+		btn.MouseButton1Click:Connect(function()
+			clearHighlights(GunList)
+			btn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+			selectedGun = weapon
+			SelectedGunLabel.Text = "Selected Gun: " .. weapon.Name
+			ErrorLabel.Visible = false
+		end)
+	end
+
+	GunList.CanvasSize = UDim2.new(0, 0, 0, #playerInventory:GetChildren() * 35)
+end
+
+spawn(function()
+	while true do
+		refreshGuns()
+		wait(1)
+	end
+end)
+
+local function applySightToWeapon(weapon, sightName)
+	if restrictedGuns[weapon.Name] and blockedSights[sightName] then
+		return false, "You can't equip " .. sightName .. " on " .. weapon.Name
+	end
+
+	local attachments = weapon:FindFirstChild("Attachments")
+	if not attachments then
+		attachments = Instance.new("Folder")
+		attachments.Name = "Attachments"
+		attachments.Parent = weapon
+	end
+
+	local sightFolder = attachments:FindFirstChild("Sight")
+	if not sightFolder then
+		sightFolder = Instance.new("Folder")
+		sightFolder.Name = "Sight"
+		sightFolder.Parent = attachments
+	end
+
+	if #sightFolder:GetChildren() > 0 then
+		return false, "Sight already equipped on " .. weapon.Name
+	end
+
+	local sightToClone = dictionary:FindFirstChild(sightName)
+	if not sightToClone then
+		return false, "Sight " .. sightName .. " not found in ItemsList!"
+	end
+
+	local clonedSight = sightToClone:Clone()
+	clonedSight.Parent = sightFolder
+	return true, "Equipped " .. sightName .. " on " .. weapon.Name
+end
+
+ConfirmButton.MouseButton1Click:Connect(function()
+	if not selectedSight then
+		ErrorLabel.Text = "Error: No sight selected!"
+		ErrorLabel.Visible = true
+		return
+	end
+
+	if not selectedGun then
+		ErrorLabel.Text = "Error: No gun selected!"
+		ErrorLabel.Visible = true
+		return
+	end
+
+	local success, message = applySightToWeapon(selectedGun, selectedSight)
+	ErrorLabel.Text = message
+	ErrorLabel.Visible = true
+
+	if success then
+		StarterGui:SetCore("SendNotification", {
+			Title = "SugmaHacks",
+			Text = message,
+			Duration = 3
+		})
+	end
+end)
+
+RemoveButton.MouseButton1Click:Connect(function()
+	if not selectedGun then
+		ErrorLabel.Text = "Error: No gun selected to remove sight!"
+		ErrorLabel.Visible = true
+		return
+	end
+
+	local attachments = selectedGun:FindFirstChild("Attachments")
+	if attachments then
+		local sightFolder = attachments:FindFirstChild("Sight")
+		if sightFolder then
+			sightFolder:ClearAllChildren()
+			ErrorLabel.Text = "Removed sight from "..selectedGun.Name
+			ErrorLabel.Visible = true
+			return
+		end
+	end
+
+	ErrorLabel.Text = "No sight found on "..selectedGun.Name
+	ErrorLabel.Visible = true
+end)
+
+local minimized = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.F3 then
+		StarterGui:SetCore("SendNotification", {
+			Title = "SugmaHacks",
+			Text = "Destroyed GUI",
+			Duration = 3
+		})
+		ScreenGui:Destroy()
+	elseif input.KeyCode == Enum.KeyCode.RightShift then
+		minimized = not minimized
+		ScreenGui.Enabled = not minimized
+		if minimized then
+			Title.Text = "SugmaHacks minimized"
+		else
+			Title.Text = "SugmaHacks - PD"
+		end
+	end
+end)
