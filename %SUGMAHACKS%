@@ -16,7 +16,7 @@ local playerInventory = replicatedPlayerFolder:FindFirstChild("Inventory")
 if not playerInventory then error("Inventory NOT found in ReplicatedStorage.Players."..player.Name) end
 
 local dictionary = ReplicatedStorage:WaitForChild("ItemsList")
-local sighttable = { "ACOG", "HoloSight", "LPVO", "OKP7", "ONV9", "PSO1", "Reapir", "Scope6X", "SniperScope", "T1Sight" }
+local sighttable = { "ACOG", "HoloSight", "LPVO", "OKP7", "ONV9", "PSO1", "Reapir", "Scope6X", "SniperScope", "T1Sight", "SRO" }
 
 local restrictedGuns = {
 	M4 = true,
